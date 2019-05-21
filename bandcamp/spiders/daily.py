@@ -22,7 +22,7 @@ class DailySpider(scrapy.Spider):
         for post in response.css('.hentry'):
             title = post.css(POST_TITLE)
             yield self.get_post_item(post)
-            # yield scrapy.Request(title.attrib['href'], self.parse_music)
+            # yield scrapy.Request(title.attrib['href'], self.parse_embedded_player)
 
         older = response.css('.nav-previous a').get()
         if older:
@@ -37,3 +37,7 @@ class DailySpider(scrapy.Spider):
         il.add_css('tags', POST_TAGS + TEXT_SEL)
         il.add_css('author', POST_AUTHOR + ATTR_SEL % 'href')
         return il.load_item()
+
+    def parse_embedded_player(self, response):
+        for player in response.xpath('//iframe[contains(@src, "EmbeddedPlayer")]'):
+            pass

@@ -15,6 +15,15 @@ class BcDailyPost(scrapy.Item):
     url = scrapy.Field()
 
 
+# TODO change name
+class BcMusic(scrapy.Item):
+    artist = scrapy.Field()
+    album = scrapy.Field()
+    track = scrapy.Field()
+    artwork = scrapy.Field()
+    url = scrapy.Field()
+
+
 def normalize(v):
     return v.replace(u'\xa0', u' ')
 
