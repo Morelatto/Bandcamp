@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import scrapy
 
-from bandcamp.items import BcDailyPostLoader, BcMusicLoader
+from bandcamp.items import BcDailyPostLoader
 
 TEXT_SEL = '::text'
 ATTR_SEL = '::attr(%s)'
@@ -22,8 +22,7 @@ class DailySpider(scrapy.Spider):
         for post in response.css('.hentry'):
             title = post.css(POST_TITLE)
             yield self.parse_post_info(post)
-            yield scrapy.Request(title.attrib['href'], self.parse_post_music)
-            break
+            yield scrapy.Request(title.attrib['href'], self.parse_post_links)
 
         older = response.css('.nav-previous a').get()
         if older:
@@ -39,16 +38,10 @@ class DailySpider(scrapy.Spider):
         il.add_css('author', POST_AUTHOR + ATTR_SEL % 'href')
         return il.load_item()
 
-    def parse_post_music(self, response):
-        for player in response.xpath('//iframe[contains(@src, "EmbeddedPlayer")]'):
-            yield scrapy.Request(response.urljoin(player.attrib['src']), self.parse_embedded_player)
-
-    def parse_embedded_player(self, response):
-        il = BcMusicLoader(response=response)
-        il.add_css('artist', '#artist' + TEXT_SEL)
-        il.add_css('album', '#album' + TEXT_SEL)
-        il.add_css('track', '#currenttitle_title' + TEXT_SEL)
-        il.add_css('track_number', '#currenttitle_tracknum' + TEXT_SEL)
-        il.add_css('artwork', '.art' + ATTR_SEL % 'style')
-        il.add_css('url', '#tracknamelink' + ATTR_SEL % 'href')
-        return il.load_item()
+    def parse_post_links(self, response):
+        to_dl = []
+        for link in response.css('.entry-content *' + ATTR_SEL % 'href').getall():
+            if '.bandcamp' in link:
+                if '/album/' in link or 'daily.bandcamp.com' not in link:
+                    to_dl.append(link)
+        yield {'to_dl': to_dl}
