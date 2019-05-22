@@ -17,6 +17,7 @@ class DailySpider(scrapy.Spider):
     name = 'daily'
     allowed_domains = ['bandcamp.com']
     start_urls = ['http://daily.bandcamp.com/?s=']
+    custom_settings = {'MONGODB_COLLECTION': 'daily'}
 
     def parse(self, response):
         for post in response.css('.hentry'):
