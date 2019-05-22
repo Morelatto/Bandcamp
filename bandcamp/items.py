@@ -7,12 +7,13 @@ from w3lib.html import strip_html5_whitespace
 
 
 class BcDailyPost(scrapy.Item):
-    id = scrapy.Field()
+    url = scrapy.Field()
     title = scrapy.Field()
     published = scrapy.Field()
     author = scrapy.Field()
     tags = scrapy.Field()
     content = scrapy.Field()
+    to_dl = scrapy.Field()
 
 
 def normalize(v):
@@ -26,3 +27,4 @@ class BcDailyPostLoader(ItemLoader):
 
     title_out = Compose(TakeFirst(), normalize)
     tags_out = Identity()
+    to_dl_out = Identity()

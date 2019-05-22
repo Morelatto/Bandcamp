@@ -21,22 +21,21 @@ class DailySpider(scrapy.Spider):
     def parse(self, response):
         for post in response.css('.hentry'):
             link = post.css(POST_TITLE).attrib['href']
-            yield self.parse_post_info(post)
-            yield scrapy.Request(link, self.parse_post_links, meta={'key': link})
+            loader = BcDailyPostLoader(selector=post)
+            self.add_post_info(loader)
+            yield scrapy.Request(link, self.parse_post_links, meta={'loader': loader})
 
-        older = response.css('.nav-previous a').get()
+        older = response.css('.nav-previous a')
         if older:
             yield scrapy.Request(older.attrib['href'])
 
-    def parse_post_info(self, post):
-        il = BcDailyPostLoader(selector=post)
-        il.add_css('id', POST_TITLE + ATTR_SEL % 'href')
-        il.add_css('title', POST_TITLE + TEXT_SEL)
-        il.add_css('published', POST_DATE + ATTR_SEL % 'title')
-        il.add_css('content', POST_CONTENT + TEXT_SEL)
-        il.add_css('tags', POST_TAGS + TEXT_SEL)
-        il.add_css('author', POST_AUTHOR + ATTR_SEL % 'href')
-        return il.load_item()
+    def add_post_info(self, loader):
+        loader.add_css('url', POST_TITLE + ATTR_SEL % 'href')
+        loader.add_css('title', POST_TITLE + TEXT_SEL)
+        loader.add_css('published', POST_DATE + ATTR_SEL % 'title')
+        loader.add_css('content', POST_CONTENT + TEXT_SEL)
+        loader.add_css('tags', POST_TAGS + TEXT_SEL)
+        loader.add_css('author', POST_AUTHOR + ATTR_SEL % 'href')
 
     def parse_post_links(self, response):
         to_dl = []
@@ -44,4 +43,6 @@ class DailySpider(scrapy.Spider):
             if '.bandcamp' in link:
                 if '/album/' in link or 'daily.bandcamp.com' not in link:
                     to_dl.append(link)
-        return {'to_dl': to_dl, 'id': response.meta['key']}
+        loader = response.meta['loader']
+        loader.add_value('to_dl', to_dl)
+        return loader.load_item()
