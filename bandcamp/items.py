@@ -7,22 +7,12 @@ from w3lib.html import strip_html5_whitespace
 
 
 class BcDailyPost(scrapy.Item):
+    id = scrapy.Field()
     title = scrapy.Field()
     published = scrapy.Field()
     author = scrapy.Field()
     tags = scrapy.Field()
     content = scrapy.Field()
-    url = scrapy.Field()
-
-
-# TODO change name
-class BcMusic(scrapy.Item):
-    artist = scrapy.Field()
-    album = scrapy.Field()
-    track = scrapy.Field()
-    track_number = scrapy.Field()
-    artwork = scrapy.Field()
-    url = scrapy.Field()
 
 
 def normalize(v):
@@ -36,9 +26,3 @@ class BcDailyPostLoader(ItemLoader):
 
     title_out = Compose(TakeFirst(), normalize)
     tags_out = Identity()
-
-
-class BcMusicLoader(ItemLoader):
-    default_item_class = BcMusic
-    default_input_processor = MapCompose(strip_html5_whitespace)
-    default_output_processor = Compose(TakeFirst())
