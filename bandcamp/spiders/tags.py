@@ -7,13 +7,15 @@ from bandcamp.items import BcTagPageRow, BcTagPageLoader
 BANDCAMP = 'bandcamp.com'
 
 TEXT_SEL = '::text'
-ATTR_SEL = '::attr(%s)'
 
-POST_TITLE = '.entry-title a'
-POST_DATE = '.published'
-POST_CONTENT = '.entry-content *'
-POST_TAGS = '.tag-links a'
-POST_AUTHOR = '.author a'
+TAG_GENRE = '.row .name span' + TEXT_SEL
+TAG_DESCRIPTION = '.description *' + TEXT_SEL
+RELATED_TAGS = '.related-tags a' + TEXT_SEL
+ALL_ROWS = '.carousel-wrapper'
+ROW_TITLE = '.carousel-title' + TEXT_SEL
+COL_OF_ROW = '.col'
+ARTIST_NAME = '*[data-bind="text: artist"]' + TEXT_SEL
+ALBUM_NAME = '*[data-bind="text: title"]' + TEXT_SEL
 
 TO_SKIP = ['from the bandcamp daily']
 
@@ -33,20 +35,20 @@ class DailySpider(scrapy.Spider):
 
     def parse(self, response):
         loader = BcTagPageLoader(response=response)
-        loader.add_css('genre', '.row .name span' + TEXT_SEL)
-        loader.add_css('summary', '.description *' + TEXT_SEL)
-        loader.add_css('related_tags', '.related-tags a' + TEXT_SEL)
+        loader.add_css('genre', TAG_GENRE)
+        loader.add_css('summary', TAG_DESCRIPTION)
+        loader.add_css('related_tags', RELATED_TAGS)
         self.add_page_rows(loader)
         return loader.load_item()
 
     def add_page_rows(self, loader):
-        for row in loader.selector.css('.carousel-wrapper'):
-            title = row.css('.carousel-title' + TEXT_SEL).get().strip()
+        for row in loader.selector.css(ALL_ROWS):
+            title = row.css(ROW_TITLE).get().strip()
             if title not in TO_SKIP:
                 to_dl = []
-                for col in row.css('.col'):
-                    artist = col.css('*[data-bind="text: artist"]' + TEXT_SEL).get()
-                    album = col.css('*[data-bind="text: title"]' + TEXT_SEL).get()
+                for col in row.css(COL_OF_ROW):
+                    artist = col.css(ARTIST_NAME).get()
+                    album = col.css(ALBUM_NAME).get()
                     to_dl.append((artist, album))
                 loader.add_value('page_rows', BcTagPageRow(title=title, to_dl=to_dl))
 

@@ -11,6 +11,7 @@ POST_DATE = '.published'
 POST_CONTENT = '.entry-content *'
 POST_TAGS = '.tag-links a'
 POST_AUTHOR = '.author a'
+POST_LINKS = '.entry-content *' + ATTR_SEL % 'href'
 
 
 class DailySpider(scrapy.Spider):
@@ -40,7 +41,7 @@ class DailySpider(scrapy.Spider):
 
     def parse_post_links(self, response):
         to_dl = []
-        for link in response.css('.entry-content *' + ATTR_SEL % 'href').getall():
+        for link in response.css(POST_LINKS).getall():
             if '.bandcamp' in link:
                 if '/album/' in link or 'daily.bandcamp.com' not in link:
                     to_dl.append(link)
