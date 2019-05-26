@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 import json
-
 import scrapy
 
 from bandcamp.items import BcTagPageRow, BcTagPageLoader
