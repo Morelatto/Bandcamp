@@ -23,7 +23,7 @@ TO_SKIP = ['from the bandcamp daily']
 class DailySpider(scrapy.Spider):
     name = 'tags'
     allowed_domains = [BANDCAMP]
-    custom_settings = {'MONGODB_COLLECTION': 'tags'}
+    custom_settings = {'MONGODB_COLLECTION': 'tags', 'MONGODB_UNIQUE_KEY': 'genre'}
 
     def __init__(self, tag=None, all_tags=None, **kwargs):
         super().__init__(**kwargs)

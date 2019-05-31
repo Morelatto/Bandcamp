@@ -1,61 +1,67 @@
-import multiprocessing
 import os
 import pymongo
 
 from bandcamp_dl.bandcamp import Bandcamp
 from bandcamp_dl.bandcampdownloader import BandcampDownloader
-from slugify import slugify
+from py_bandcamp import BandCamper
 
 DL_DIR = 'dls/'
 THREADS = 8
 DEFAULT_TEMPLATE = '%{artist}/%{album}/%{track} - %{title}'
 
 bandcamp = Bandcamp()
+bandcamper = BandCamper()
 
 
-def bc_dl(args):
-    base_dir, url = args
-    try:
+def bc_dl(urls, base_dir=DL_DIR):
+    downloader = BandcampDownloader(DEFAULT_TEMPLATE,
+                                    base_dir,
+                                    overwrite=False,
+                                    embed_lyrics=True,
+                                    grouping=False,
+                                    embed_art=True,
+                                    no_slugify=False,
+                                    debugging=False,
+                                    urls=urls)
+    for url in set(urls):
         album = bandcamp.parse(url, lyrics=True)
-        bandcamp_downloader = BandcampDownloader(DEFAULT_TEMPLATE, base_dir, False, True, False, True, False, False,
-                                                 url)
-        print('Downloading', url)
-        bandcamp_downloader.start(album)
-        return url
-    except Exception as e:  # FIXME AttributeError
-        print('Failed', url, e)
-
-
-def get(urls, base_dir=DL_DIR):
-    return pool.map(bc_dl, [(base_dir, url) for url in urls])
-
-
-def get_album_url(artist, album):
-    return "http://{}.bandcamp.com/album/{}".format(slugify(artist), slugify(album))
+        print('\nDownloading', url)
+        downloader.start(album)
 
 
 def daily():
     posts = db['daily'].find({'to_dl': {'$exists': True}, 'dl': {'$ne': True}}).sort('published', -1)
     for p in posts:
         # TODO check if download success and update_one(doc, {'$rename': {'to_dl': 'dl'}})
-        res = get(p['to_dl'])
+        # res = get(p['to_dl'])
+        res = None
         print('Updating on db', res)
         db['daily'].update_many({'to_dl': {'$in': res}}, {'$rename': {'to_dl': 'dl'}})
 
 
 def tags():
-    genres = db['tags'].find({'page_rows.to_dl': {'$exists': True}, 'dl': {'$ne': True}})[:1]
+    genres = db['tags'].find({'page_rows.to_dl': {'$exists': True}, 'page_rows.dl': {'$exists': False}})
     for g in genres:
         for row in g['page_rows']:
-            dl_dir = os.path.join(DL_DIR, g['genre'], row['title'])
+            print('Downloading', row['title'])
+            urls, dl_dir = list(), os.path.join(DL_DIR, g['genre'], row['title'])
             os.makedirs(dl_dir, exist_ok=True)
-            get([get_album_url(to[0], to[1]) for to in row['to_dl']], dl_dir)
+            for to in row['to_dl']:
+                albums = bandcamper.search_albums(to[1])
+                if albums:
+                    album = next(albums)
+                    if g['genre'] in album['tags']:
+                        print('Adding {} to download list ({})'.format(album['album_name'], album['length']))
+                        urls.append(album['url'])
+            bc_dl(urls, dl_dir)
+            db['tags'].update_one({'page_rows': row}, {'$set': {'page_rows.$.dl': row['to_dl']}})
 
 
 if __name__ == '__main__':
     c = pymongo.MongoClient()
     db = c['bandcamp']
-    pool = multiprocessing.Pool(processes=THREADS)
 
     os.makedirs(DL_DIR, exist_ok=True)
-    daily()
+    # TODO pass which genre as param
+    # TODO integrate with tags.py
+    tags()
