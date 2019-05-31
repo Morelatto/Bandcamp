@@ -6,7 +6,6 @@ from bandcamp_dl.bandcampdownloader import BandcampDownloader
 from py_bandcamp import BandCamper
 
 DL_DIR = 'dls/'
-THREADS = 8
 DEFAULT_TEMPLATE = '%{artist}/%{album}/%{track} - %{title}'
 
 bandcamp = Bandcamp()
@@ -23,20 +22,18 @@ def bc_dl(urls, base_dir=DL_DIR):
                                     no_slugify=False,
                                     debugging=False,
                                     urls=urls)
-    for url in set(urls):
+    for url in urls:
         album = bandcamp.parse(url, lyrics=True)
         print('\nDownloading', url)
         downloader.start(album)
 
 
 def daily():
-    posts = db['daily'].find({'to_dl': {'$exists': True}, 'dl': {'$ne': True}}).sort('published', -1)
+    posts = db['daily'].find({'to_dl': {'$exists': True}}).sort('published', -1)
     for p in posts:
-        # TODO check if download success and update_one(doc, {'$rename': {'to_dl': 'dl'}})
-        # res = get(p['to_dl'])
-        res = None
-        print('Updating on db', res)
-        db['daily'].update_many({'to_dl': {'$in': res}}, {'$rename': {'to_dl': 'dl'}})
+        # TODO treat /music (AttributeError)
+        bc_dl(p['to_dl'])
+        db['daily'].update_one(p, {'$rename': {'to_dl': 'dl'}})
 
 
 def tags():
