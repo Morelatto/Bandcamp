@@ -4,8 +4,6 @@ import pymongo
 
 from bandcamp_dl.bandcamp import Bandcamp
 from bandcamp_dl.bandcampdownloader import BandcampDownloader
-from py_bandcamp import BandCamper
-from unidecode import unidecode
 
 DL_DIR = 'dls/'
 os.makedirs(DL_DIR, exist_ok=True)
@@ -13,7 +11,6 @@ os.makedirs(DL_DIR, exist_ok=True)
 DEFAULT_TEMPLATE = '%{artist}/%{album}/%{track} - %{title}'
 
 bandcamp = Bandcamp()
-bandcamper = BandCamper()
 
 c = pymongo.MongoClient()
 db = c['bandcamp']
@@ -30,9 +27,12 @@ def bc_dl(urls, base_dir=DL_DIR):
                                     debugging=False,
                                     urls=urls)
     for url in urls:
-        album = bandcamp.parse(url, lyrics=True)
-        print('\nDownloading', url)
-        downloader.start(album)
+        try:
+            album = bandcamp.parse(url, lyrics=True)
+            print('\nDownloading', url)
+            downloader.start(album)
+        except Exception as e:
+            print('Failed to download', url, e)
 
 
 def daily():
@@ -45,26 +45,11 @@ def daily():
 
 def tags(json_results):
     with open(json_results) as f:
-        for res in parse_scrapy_json(f.readlines()):
-            urls = list()
-            for release in res['all_releases']:
-                album_url = search_url(release['album'])
-                if album_url:
-                    urls.append(album_url)
-            bc_dl(urls)
-
-
-def search_url(album):
-    try:
-        albums = bandcamper.search_albums(unidecode(album))
-        if albums:
-            album = next(albums)
-            print('Adding {} to download list ({})'.format(album['album_name'], album['length']))
-            return album['url']
-        else:
-            print('No search results found for album', album)
-    except Exception as e:
-        print('Failed to search for album', album, e)
+        for collection in parse_scrapy_json(f.readlines()):
+            urls = set()
+            for release in collection['releases']:
+                urls.add(release['url'])
+            bc_dl(urls, os.path.join(DL_DIR, release['genre'], collection['name']))
 
 
 # Scrapy creates invalid json
