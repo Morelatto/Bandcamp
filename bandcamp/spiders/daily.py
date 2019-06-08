@@ -1,7 +1,9 @@
 # -*- coding: utf-8 -*-
-
 import scrapy
+from pytz import timezone
+
 from bandcamp.items import BcDailyPostLoader
+from dateutil import parser
 
 TEXT_SEL = '::text'
 ATTR_SEL = '::attr(%s)'
@@ -20,12 +22,19 @@ class DailySpider(scrapy.Spider):
     start_urls = ['http://daily.bandcamp.com/?s=']
     custom_settings = {'MONGODB_COLLECTION': 'daily', 'MONGODB_UNIQUE_KEY': 'url'}
 
+    def __init__(self, since='01-01-1970', **kwargs):
+        super().__init__(**kwargs)
+        self.start_date = parser.parse(since).replace(tzinfo=timezone('America/Sao_Paulo'))
+
     def parse(self, response):
         for post in response.css('.hentry'):
-            link = post.css(POST_TITLE).attrib['href']
-            loader = BcDailyPostLoader(selector=post)
-            self.add_post_info(loader)
-            yield scrapy.Request(link, self.parse_post_links, meta={'loader': loader})
+            if parser.parse(response.css(POST_DATE + ATTR_SEL % 'title').get()) >= self.start_date:
+                link = post.css(POST_TITLE).attrib['href']
+                loader = BcDailyPostLoader(selector=post)
+                self.add_post_info(loader)
+                yield scrapy.Request(link, self.parse_post_links, meta={'loader': loader})
+            else:
+                return
 
         older = response.css('.nav-previous a')
         if older:
