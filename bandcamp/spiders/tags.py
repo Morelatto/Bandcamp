@@ -1,8 +1,7 @@
 # -*- coding: utf-8 -*-
-import json
 import scrapy
 
-from bandcamp.items import BcTagPageRow, BcTagPageLoader
+from bandcamp.items import BcTagPageLoader
 
 BANDCAMP = 'bandcamp.com'
 
@@ -20,36 +19,36 @@ ALBUM_NAME = '*[data-bind="text: title"]' + TEXT_SEL
 TO_SKIP = ['from the bandcamp daily']
 
 
-class DailySpider(scrapy.Spider):
+class TagSpider(scrapy.Spider):
     name = 'tags'
     allowed_domains = [BANDCAMP]
-    custom_settings = {'MONGODB_COLLECTION': 'tags', 'MONGODB_UNIQUE_KEY': 'genre'}
+    custom_settings = {
+        'FEED_URI': 'tag_results.json',
+        'FEED_EXPORT_ENCODING': 'utf-8',
+    }
 
-    def __init__(self, tag=None, all_tags=None, **kwargs):
+    def __init__(self, tags='', **kwargs):
         super().__init__(**kwargs)
-        self.urls = [tag] if tag else json.loads(all_tags)
+        self.tags = tags.split(';')
 
     def start_requests(self):
-        for url in self.urls:
-            yield scrapy.Request('https://' + BANDCAMP + url)
+        for tag in self.tags:
+            yield scrapy.Request('https://{}/tag/{}'.format(BANDCAMP, tag))
 
     def parse(self, response):
         loader = BcTagPageLoader(response=response)
         loader.add_css('genre', TAG_GENRE)
         loader.add_css('summary', TAG_DESCRIPTION)
         loader.add_css('related_tags', RELATED_TAGS)
-        self.add_page_rows(loader)
+        self.add_all_releases(loader)
         return loader.load_item()
 
-    def add_page_rows(self, loader):
-        for row in loader.selector.css(ALL_ROWS):
-            title = row.css(ROW_TITLE).get().strip()
-            if title not in TO_SKIP:
-                to_dl = []
-                for col in row.css(COL_OF_ROW):
-                    artist = col.css(ARTIST_NAME).get()
-                    album = col.css(ALBUM_NAME).get()
-                    to_dl.append((artist, album))
-                loader.add_value('page_rows', BcTagPageRow(title=title, to_dl=to_dl))
-
-    # TODO parse dig deeper
+    def add_all_releases(self, loader):
+        for col in loader.selector.css('.col.item'):
+            artist = col.css(ARTIST_NAME)
+            album = col.css(ALBUM_NAME)
+            if artist and album:
+                loader.add_value('all_releases', {
+                    'artist': artist.get(),
+                    'album': album.get()
+                })

@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 import scrapy
-from pytz import timezone
 
 from bandcamp.items import BcDailyPostLoader
 from dateutil import parser
+from pytz import timezone
 
 TEXT_SEL = '::text'
 ATTR_SEL = '::attr(%s)'
@@ -20,7 +20,12 @@ class DailySpider(scrapy.Spider):
     name = 'daily'
     allowed_domains = ['bandcamp.com']
     start_urls = ['http://daily.bandcamp.com/?s=']
-    custom_settings = {'MONGODB_COLLECTION': 'daily', 'MONGODB_UNIQUE_KEY': 'url'}
+    custom_settings = {
+        'MONGODB_DATABASE': 'bandcamp',
+        'MONGODB_COLLECTION': 'daily',
+        'MONGODB_UNIQUE_KEY': 'url',
+        'ITEM_PIPELINES': {'scrapy_mongodb.MongoDBPipeline': 300},
+    }
 
     def __init__(self, since='01-01-1970', **kwargs):
         super().__init__(**kwargs)

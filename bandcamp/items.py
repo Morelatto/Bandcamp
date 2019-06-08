@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import re
-
 import scrapy
+
 from scrapy.loader import ItemLoader, Identity
 from scrapy.loader.processors import TakeFirst, MapCompose, Compose, Join
 from w3lib.html import replace_escape_chars, strip_html5_whitespace
@@ -21,13 +21,7 @@ class BcTagPage(scrapy.Item):
     genre = scrapy.Field()
     summary = scrapy.Field()
     related_tags = scrapy.Field(input_processor=Identity(), output_processor=Identity())
-    page_rows = scrapy.Field(input_processor=Identity(), output_processor=Identity())
-
-
-# input/output_processor of Field from a sub-item not working
-class BcTagPageRow(scrapy.Item):
-    title = scrapy.Field()
-    to_dl = scrapy.Field()
+    all_releases = scrapy.Field(input_processor=Identity(), output_processor=Identity())
 
 
 def normalize(v):
