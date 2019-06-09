@@ -1,6 +1,15 @@
-"""Usage:
+"""Script to download music collections from bandcamp.com/tags
+
+Usage:
   tags.py [<tag>]...
   tags.py -h | --help | --version
+
+Arguments:
+  [<tag>]...    Optional tag name from all tags list.
+
+Options:
+  -h, --help    Show this help message.
+  --version     Show version.
 """
 import dl
 import os
@@ -77,5 +86,5 @@ def main():
 
 
 if __name__ == '__main__':
-    args = docopt(__doc__, version='0.1')
+    args = docopt(__doc__, version='0.2')
     main()
