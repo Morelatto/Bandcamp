@@ -2,8 +2,7 @@
 import scrapy
 
 from bandcamp.items import BcDailyPostLoader
-from dateutil import parser
-from pytz import timezone
+from dateutil import parser, tz
 
 TEXT_SEL = '::text'
 ATTR_SEL = '::attr(%s)'
@@ -29,7 +28,7 @@ class DailySpider(scrapy.Spider):
 
     def __init__(self, since='01-01-1970', **kwargs):
         super().__init__(**kwargs)
-        self.start_date = parser.parse(since).replace(tzinfo=timezone('America/Sao_Paulo'))
+        self.start_date = parser.parse(since).replace(tzinfo=tz.gettz("America/Sao_Paulo"))
 
     def parse(self, response):
         for post in response.css('.hentry'):
