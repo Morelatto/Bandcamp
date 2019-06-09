@@ -41,4 +41,5 @@ class TagSpider(scrapy.Spider):
                     release_item['featured_track'] = (release['featured_track_number'], release['featured_track_title'])
                     release_item['url'] = release['tralbum_url']
                     collection_item['releases'].append(release_item)
+                self.logger.info(collection_item)
                 yield collection_item

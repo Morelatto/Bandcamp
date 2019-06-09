@@ -3,12 +3,15 @@
   tags.py -h | --help | --version
 """
 import dl
+import os
 import requests
 
+from bandcamp.spiders.tags import TagSpider
 from docopt import docopt
 from parsel import Selector
-from scrapy import cmdline
+from scrapy.crawler import CrawlerProcess
 
+# Only works when spider is called
 LOG_LEVEL = 'INFO'
 
 TAGS_URL = 'https://www.bandcamp.com/tags'
@@ -18,8 +21,6 @@ headers = {
     'User-Agent':
         'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/73.0.3683.86 Safari/537.36'
 }
-
-cmd = ["scrapy", "crawl", "tags"]
 
 
 def get_all_tags():
@@ -36,17 +37,24 @@ def get_all_tags():
 
 
 def execute(tags_urls):
-    cmd.append('-s')
-    cmd.append('LOG_LEVEL=' + LOG_LEVEL)
-    cmd.append('-a')
-    cmd.append('tags=' + ';'.join(tags_urls))
-    try:
-        cmdline.execute(cmd)
-    except BaseException:
-        pass
+    process = CrawlerProcess({
+        'LOG_LEVEL': LOG_LEVEL
+    })
+
+    process.crawl(TagSpider, tags=';'.join(tags_urls))
+    process.start()
+    process.stop()
 
 
 def main():
+    if os.path.isfile(TAG_RESULTS_FILE):
+        res = input('Tag results file found, use it?')
+        if res in ('y', 'yes', ''):
+            dl.tags(TAG_RESULTS_FILE)
+            return
+        else:
+            os.remove(TAG_RESULTS_FILE)
+
     all_tags, args_tag, tag_urls = get_all_tags(), args['<tag>'], []
     if not args_tag:
         n = input('# ')
@@ -60,7 +68,7 @@ def main():
                     tag_urls.append(url)
                     args_tag.remove(tag)
 
-    if args_tag:
+    if not tag_urls:
         print('Tag not found', args_tag)
         return
 
